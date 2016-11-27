@@ -159,6 +159,15 @@ bool ApplyTagToNode(HWND hDlg) {
     return false;
 }
 
+bool ApplyTagToNode(HWND hDlg, int tag) {
+    if (selectednode && tag != selectednode->tag) {
+        selectednode->tag = tag;
+        rendertree(hDlg, true);
+        return true;
+    }
+    return false;
+}
+
 long handleNotify(HWND hWndDlg, int nIDCtrl, LPNMHDR pNMHDR) {
     switch (pNMHDR->code) {
         case NM_CUSTOMDRAW: {
@@ -292,7 +301,7 @@ void setdaterangecontrols(HWND hDlg) {
     endingdatepicker = GetDlgItem(hDlg, IDC_DATETIMEPICKER2);
     SendMessageA(endingdatepicker, DTM_SETSYSTEMTIME, GDT_VALID, (LPARAM)&st);
 }
-
+COLORREF taglistCustomColors[16];
 INT_PTR CALLBACK Stats(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam) {
     UNREFERENCED_PARAMETER(lParam);
     switch (message) {
@@ -417,6 +426,65 @@ INT_PTR CALLBACK Stats(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam) {
         case WM_LBUTTONUP: {
             break;
         }
+        case WM_CONTEXTMENU: {
+            POINT screenPoint = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
+            POINT hitPoint; RECT hitRect;
+            //
+            hitPoint = screenPoint;
+            ScreenToClient(taglist, &hitPoint);
+            GetClientRect(taglist, &hitRect);
+            if (PtInRect(&hitRect, hitPoint)) {
+                LVHITTESTINFO hitTest;
+                hitTest.pt = hitPoint;
+                ListView_HitTest(taglist, &hitTest);
+                int listItem = hitTest.iItem;
+                if (listItem >= 0) {
+                    HMENU listMenu = CreatePopupMenu();
+                    if (!listMenu) break;
+                    int listBits = taglistMenuOffset + (listItem << 8);
+                    AppendMenuA(listMenu, MF_STRING, 'LN', "Change name");
+                    AppendMenuA(listMenu, MF_STRING, 'LC', "Change color");
+                    TrackPopupMenu(listMenu, 0, screenPoint.x, screenPoint.y, 0, hDlg, NULL);
+                    SendMessage(hDlg, WM_NULL, 0, 0);
+                    DestroyMenu(listMenu);
+                    return (INT_PTR)TRUE;
+                }
+            } // taglist hit
+            //
+            hitPoint = screenPoint;
+            ScreenToClient(treeview, &hitPoint);
+            GetClientRect(treeview, &hitRect);
+            if (PtInRect(&hitRect, hitPoint)) {
+                TVHITTESTINFO hitTest;
+                hitTest.pt = hitPoint;
+                TreeView_HitTest(treeview, &hitTest);
+                HTREEITEM treeItem = hitTest.hItem;
+                if (treeItem) {
+                    TreeView_SelectItem(treeview, treeItem);
+                    HMENU treeMenu = CreatePopupMenu();
+                    if (!treeMenu) break;
+                    for (int i = 0; i < MAXTAGS; i++) {
+                        int uid = 'T0' + i;
+                        AppendMenuA(treeMenu, MF_STRING, uid, tags[i].name);
+                        /*
+                        // TODO: Generate (and cache?) a square-icon for menu item
+                        MENUITEMINFOA info;
+                        ZeroMemory(&info, sizeof(info));
+                        info.cbSize = sizeof(info);
+                        info.hbmpItem = (the icon);
+                        info.fMask = MIIM_BITMAP;
+                        SetMenuItemInfo(treeMenu, uid, false, &info);
+                        */
+                    }
+                    TrackPopupMenu(treeMenu, 0, screenPoint.x, screenPoint.y, 0, hDlg, NULL);
+                    SendMessage(hDlg, WM_NULL, 0, 0);
+                    DestroyMenu(treeMenu);
+                    return (INT_PTR)TRUE;
+                }
+            }
+            //
+            break;
+        };
         case WM_MOUSEWHEEL: {
             break;
         }
@@ -434,7 +502,8 @@ INT_PTR CALLBACK Stats(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam) {
             break;
         }
         case WM_COMMAND: {
-            switch (LOWORD(wParam)) {
+            int wmId = LOWORD(wParam);
+            switch (wmId) {
                 case IDCANCEL: {
                     EndDialog(hDlg, LOWORD(wParam));
                     return (INT_PTR)TRUE;
@@ -516,6 +585,35 @@ INT_PTR CALLBACK Stats(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam) {
                         filterontag = -1;
                     rendertree(hDlg, true);
                     return (INT_PTR)TRUE;
+                }
+                case 'LN': {
+                    int sel = SendMessage(taglist, LVM_GETNEXTITEM, -1, LVNI_FOCUSED);
+                    if (sel < 0) break;
+                    SetFocus(taglist);
+                    ListView_EditLabel(taglist, sel);
+                    break;
+                };
+                case 'LC': {
+                    int sel = SendMessage(taglist, LVM_GETNEXTITEM, -1, LVNI_FOCUSED);
+                    if (sel < 0) break;
+                    CHOOSECOLOR colorDlg;
+                    ZeroMemory(&colorDlg, sizeof(colorDlg));
+                    colorDlg.lStructSize = sizeof(colorDlg);
+                    colorDlg.hwndOwner = hDlg;
+                    colorDlg.rgbResult = tags[sel].color;
+                    colorDlg.lpCustColors = taglistCustomColors;
+                    colorDlg.Flags = CC_FULLOPEN | CC_RGBINIT;
+                    if (ChooseColor(&colorDlg)) {
+                        tags[sel].color = colorDlg.rgbResult;
+                        // TODO: Update tagimages, tags[].barbm, tags[].br
+                        rendertree(hDlg, true);
+                    }
+                    break;
+                };
+                default: {
+                    if (wmId >= 'T0' && wmId < 'T0' + MAXTAGS) {
+                        ApplyTagToNode(hDlg, wmId - 'T0');
+                    }
                 }
             }
             break;
