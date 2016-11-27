@@ -441,7 +441,6 @@ INT_PTR CALLBACK Stats(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam) {
                 if (listItem >= 0) {
                     HMENU listMenu = CreatePopupMenu();
                     if (!listMenu) break;
-                    int listBits = taglistMenuOffset + (listItem << 8);
                     AppendMenuA(listMenu, MF_STRING, 'LN', "Change name");
                     AppendMenuA(listMenu, MF_STRING, 'LC', "Change color");
                     TrackPopupMenu(listMenu, 0, screenPoint.x, screenPoint.y, 0, hDlg, NULL);
@@ -463,18 +462,29 @@ INT_PTR CALLBACK Stats(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam) {
                     TreeView_SelectItem(treeview, treeItem);
                     HMENU treeMenu = CreatePopupMenu();
                     if (!treeMenu) break;
-                    for (int i = 0; i < MAXTAGS; i++) {
+                    // regular menu items:
+                    AppendMenuA(treeMenu, MF_STRING, 'TH', "Hide");
+                    // tag assignment:
+                    AppendMenuA(treeMenu, MF_SEPARATOR, 0, 0);
+                    loop(i, MAXTAGS) {
                         int uid = 'T0' + i;
                         AppendMenuA(treeMenu, MF_STRING, uid, tags[i].name);
-                        /*
-                        // TODO: Generate (and cache?) a square-icon for menu item
+                        // create the icon if that's not done yet:
+                        HBITMAP &bm = tags[i].menubm;
+                        if (!bm) {
+                            if (!bitmapdc) bitmapdc = CreateCompatibleDC(GetDC(hDlg));
+                            bm = CreateCompatibleBitmap(GetDC(hDlg), 16, 16);
+                            SelectObject(bitmapdc, bm);
+                            RECT r = { 0, 0, 16, 16 };
+                            FillRect(bitmapdc, &r, CreateSolidBrush(tags[i].color));
+                        }
+                        // add icon to menu item:
                         MENUITEMINFOA info;
                         ZeroMemory(&info, sizeof(info));
                         info.cbSize = sizeof(info);
-                        info.hbmpItem = (the icon);
+                        info.hbmpItem = bm;
                         info.fMask = MIIM_BITMAP;
                         SetMenuItemInfo(treeMenu, uid, false, &info);
-                        */
                     }
                     TrackPopupMenu(treeMenu, 0, screenPoint.x, screenPoint.y, 0, hDlg, NULL);
                     SendMessage(hDlg, WM_NULL, 0, 0);
@@ -607,6 +617,13 @@ INT_PTR CALLBACK Stats(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam) {
                         tags[sel].color = colorDlg.rgbResult;
                         // TODO: Update tagimages, tags[].barbm, tags[].br
                         rendertree(hDlg, true);
+                    }
+                    break;
+                };
+                case 'TH': {
+                    if (selectednode != root) {
+                        selectednode->hidden = true;
+                        rendertree(hDlg, false);
                     }
                     break;
                 };

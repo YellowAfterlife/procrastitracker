@@ -45,19 +45,20 @@ struct tag {
     DWORD color;
     HBRUSH br;
     HBITMAP barbm;
+    HBITMAP menubm;
 };
 
 const int MAXTAGS = 15;
 
 tag tags[MAXTAGS] = {
-    {"UNTAGGED", 0xD0D0D0, NULL, NULL},      {"work", 0x60FF60, NULL, NULL},
-    {"games", 0x6060FF, NULL, NULL},         {"surfing", 0x60FFFF, NULL, NULL},
-    {"entertainment", 0xFF60FF, NULL, NULL}, {"communication", 0xFFFF60, NULL, NULL},
-    {"organization", 0xFF6060, NULL, NULL},  {"project 1", 0x0000FF, NULL, NULL},
-    {"project 2", 0x00FF00, NULL, NULL},     {"project 3", 0xFF0000, NULL, NULL},
-    {"project 4", 0xB0B060, NULL, NULL},     {"project 5", 0xB060B0, NULL, NULL},
-    {"project 6", 0x60B0B0, NULL, NULL},     {"project 7", 0x606060, NULL, NULL},
-    {"project 8", 0xB0B0B0, NULL, NULL},
+    {"UNTAGGED", 0xD0D0D0, NULL, NULL, NULL},      {"work", 0x60FF60, NULL, NULL, NULL},
+    {"games", 0x6060FF, NULL, NULL, NULL},         {"surfing", 0x60FFFF, NULL, NULL, NULL},
+    {"entertainment", 0xFF60FF, NULL, NULL, NULL}, {"communication", 0xFFFF60, NULL, NULL, NULL},
+    {"organization", 0xFF6060, NULL, NULL, NULL},  {"project 1", 0x0000FF, NULL, NULL, NULL},
+    {"project 2", 0x00FF00, NULL, NULL, NULL},     {"project 3", 0xFF0000, NULL, NULL, NULL},
+    {"project 4", 0xB0B060, NULL, NULL, NULL},     {"project 5", 0xB060B0, NULL, NULL, NULL},
+    {"project 6", 0x60B0B0, NULL, NULL, NULL},     {"project 7", 0x606060, NULL, NULL, NULL},
+    {"project 8", 0xB0B0B0, NULL, NULL, NULL},
 };
 
 const int FILE_FORMAT_VERSION = 10;
